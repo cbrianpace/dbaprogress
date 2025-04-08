@@ -53,7 +53,7 @@ Select relname, 100* idx_scan / (seq_scan + idx_scan), n_live_tup from pg_stat_u
 ```sql
 SELECT
     pg_class.relname,
-   pg_size_pretty(pg_class.reltuples::bigint)            AS rows_in_bytes,
+   pg_size_pretty(pg_class.reltuples::bigint)            AS size,
     pg_class.reltuples                                    AS num_rows,
     COUNT(*)                                             AS total_indexes,
     COUNT(*) FILTER ( WHERE indisunique)                  AS unique_indexes,
@@ -64,8 +64,9 @@ FROM
     LEFT JOIN pg_class ON pg_namespace.oid = pg_class.relnamespace
     LEFT JOIN pg_index ON pg_class.oid = pg_index.indrelid
 WHERE
-    pg_namespace.nspname = 'public' AND
-    pg_class.relkind = 'r'
+    pg_namespace.nspname = 'public' 
+    AND pg_class.relkind = 'r'
+    # AND pg_class.relname = 'mytable'
 GROUP BY pg_class.relname, pg_class.reltuples
 ORDER BY pg_class.reltuples DESC;
 ```
@@ -137,4 +138,45 @@ LEFT OUTER JOIN (
 ) AS foo ON t.tablename = foo.ctablename AND t.schemaname = foo.schemaname
 WHERE t.schemaname NOT IN ('pg_catalog', 'information_schema')
 ORDER BY 1,2;
+```
+
+## Blot
+
+```sql
+WITH index_bloat AS (
+    SELECT
+        schemaname,
+        tablename,
+        indexname,
+        relpages,
+        reltuples,
+        pg_relation_size(quote_ident(schemaname) || '.' || quote_ident(indexname)) AS index_size,
+        CASE 
+            WHEN relpages > 0 THEN (relpages - reltuples / NULLIF((bs / 1024), 0)) * bs
+            ELSE 0
+        END AS bloat_size,
+        CASE 
+            WHEN relpages > 0 THEN 
+                100 * (relpages - reltuples / NULLIF((bs / 1024), 0)) / NULLIF(relpages, 0)
+            ELSE 0
+        END AS bloat_ratio
+    FROM (
+        SELECT
+            c.oid,
+            n.nspname AS schemaname,
+            c.relname AS tablename,
+            i.relname AS indexname,
+            i.reltuples,
+            i.relpages,
+            current_setting('block_size')::int AS bs
+        FROM pg_class c
+        JOIN pg_namespace n ON n.oid = c.relnamespace
+        JOIN pg_index ix ON ix.indrelid = c.oid
+        JOIN pg_class i ON i.oid = ix.indexrelid
+        WHERE c.relkind = 'r'
+    ) sub
+)
+SELECT * FROM index_bloat
+WHERE schemaname='xxxx' and tablename='yyyyyy' 
+ORDER BY bloat_ratio DESC;
 ```
