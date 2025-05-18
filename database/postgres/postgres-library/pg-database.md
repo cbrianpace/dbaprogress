@@ -84,6 +84,35 @@ JOIN pg_database d ON s.setdatabase = d.oid
 WHERE s.setrole = 0;
 ```
 
+## Database Collation
+
+```sql
+SELECT pg_encoding_to_char(encoding) as encoding,
+                  datlocprovider, datcollate, datctype, datcollversion,
+                  pg_database_collation_actual_version(oid) as act_collversion
+           FROM pg_database
+           WHERE datname = current_database();
+```
+
+The `datcollversion` is the versino of glibc that was present when the database was created. The `act_collversion` is the version of glibc that exists on the OS now.  A difference in the two could be risky to indexes.
+
+[Talk by Joe Conway on Postgres, sorting and glibc.](https://pgconf.in/conferences/pgconfin2025/program/proposals/825)
+
+Create database with builint locale provider:
+
+```sql
+CREATE DATABASE cdw LOCALE_PROVIDER builtin
+BUILTIN_LOCALE 'C.UTF-8' TEMPLATE template0;
+```
+
+Testing the sorting:
+
+```sql
+SELECT dat FROM (VALUES ('1-a'), ('1a'), ('1-aa')) as v(dat)
+ORDER BY dat
+COLLATE "en_US";
+```
+
 ## Database Info
 
 ```sql

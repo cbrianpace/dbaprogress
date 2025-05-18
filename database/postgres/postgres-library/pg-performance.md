@@ -145,8 +145,35 @@ Select relname, 100* idx_scan / (seq_scan + idx_scan), n_live_tup from pg_stat_u
 
 ### Locks
 
+#### Active Locks
+
 ```sql
--- pgMonitor Exporter (ccp_locks)
+SELECT 
+    l.locktype,
+    d.datname AS database,
+    r.relname AS relation,
+    l.mode AS lock_mode,
+    l.granted,
+    l.pid,
+    a.query,
+    a.usename AS username,
+    a.client_addr,
+    a.wait_event_type,
+    a.wait_event
+FROM 
+    pg_locks l
+    LEFT OUTER JOIN pg_database d ON l.database = d.oid
+    LEFT OUTER JOIN pg_class r ON l.relation = r.oid
+    LEFT OUTER JOIN pg_stat_activity a ON l.pid = a.pid
+WHERE 
+    l.pid != pg_backend_pid()
+ORDER BY 
+    l.pid;
+```
+
+#### Lock Summary by Database
+
+```sql
 SELECT 
     pg_database.datname as dbname, tmp.mode, COALESCE(count,0) as count
 FROM
@@ -165,7 +192,7 @@ LEFT JOIN
    FROM pg_catalog.pg_locks WHERE database IS NOT NULL
    GROUP BY database, lower(mode)
 ) AS tmp2
-ON tmp.mode=tmp2.mode and pg_database.oid = tmp2.database
+ON tmp.mode=tmp2.mode and pg_database.oid = tmp2.database;
 ```
 
 ### Session Info (General)

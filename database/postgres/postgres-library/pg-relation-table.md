@@ -50,6 +50,7 @@ ORDER BY 1,2;
 
 ```sql
 SELECT
+    pg_namespace.nspname,
     pg_class.relname,
     pg_size_pretty(pg_class.reltuples::bigint)            AS size,
     pg_class.reltuples                                    AS num_rows,
@@ -62,9 +63,10 @@ FROM
     LEFT JOIN pg_class ON pg_namespace.oid = pg_class.relnamespace
     LEFT JOIN pg_index ON pg_class.oid = pg_index.indrelid
 WHERE
-    pg_namespace.nspname = 'public' AND
-    pg_class.relkind = 'r' AND
-    --pg_class.relname = 'mytable'
-GROUP BY pg_class.relname, pg_class.reltuples
-ORDER BY pg_class.reltuples DESC;
+    pg_class.relkind = 'r'
+    AND pg_namespace.nspname not in ('pg_catalog', 'information_schema')
+    -- AND pg_namespace.nspname = 'public'
+    -- AND pg_class.relname = 'mytable'
+GROUP BY pg_namespace.nspname, pg_class.relname, pg_class.reltuples
+ORDER BY pg_namespace.nspname, pg_class.relname, pg_class.reltuples;
 ```

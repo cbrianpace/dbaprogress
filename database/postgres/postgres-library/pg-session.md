@@ -2,12 +2,17 @@
 
 ## Session Info
 
+### Current Session 
+
 ```sql
 SELECT current_database(), current_role, current_schema(), 
        current_schemas(true), pg_backend_pid(), pg_current_xact_id(),
        inet_client_addr(), inet_server_addr()  ;
+```
 
-Session Status
+### Session Status
+
+```sql
 SELECT datname, usename, 
        sum(case when state='active' then 1 else 0 end) as active,
        sum(case when state='idle' then 1 else 0 end) as idle,
@@ -24,9 +29,8 @@ SELECT sum(case when state='active' then 1 else 0 end) as active,
        count(1) as total
 FROM pg_catalog.pg_stat_activity;
 ```
- 
+
 ```sql
--- pgMonitor Exporter (ccp_connection_stats)
 SELECT ((total - idle) - idle_in_txn) as active, total, idle, idle_in_txn,
        (SELECT coalesce(extract(epoch from (max(now() - state_change))),0) 
         FROM pg_catalog.pg_stat_activity 
@@ -49,7 +53,7 @@ FROM (SELECT count(*) as total,
 
 ```sql
 select datname, pid, leader_pid, backend_type,
-	   usename, application_name,
+	usename, application_name,
        state, wait_event_type, wait_event,
        trunc(extract(epoch from current_timestamp-backend_start)) session_age,
        trunc(extract(epoch from current_timestamp-xact_start)) transaction_age,
