@@ -3,7 +3,6 @@
 ## Archive Command Status
 
 ```sql
--- pgMonitor Exporter (ccp_archive_command_status)
 SELECT CASE 
          WHEN EXTRACT(epoch from (last_failed_time - last_archived_time)) IS NULL THEN 0
          WHEN EXTRACT(epoch from (last_failed_time - last_archived_time)) < 0 THEN 0
@@ -12,24 +11,12 @@ SELECT CASE
         EXTRACT(epoch from (CURRENT_TIMESTAMP - last_archived_time)) AS seconds_since_last_archive,
         archived_count,
         failed_count
-FROM pg_catalog.pg_stat_archiver
-```
-
-## Bloat Check
-
-Note:  Requires Custom Objects Per Database
-
-```sql
--- pgMonitor Exporter (ccp_bloat_check)
-SELECT current_database() AS dbname, schemaname, objectname, size_bytes,
-      (dead_tuple_size_bytes + (free_space_bytes - (relpages - (fillfactor/100) * relpages ) * current_setting('block_size')::bigint ))::bigint AS total_wasted_space_bytes
-FROM bloat_stats
+FROM pg_catalog.pg_stat_archiver;
 ```
 
 ## Checkpoint Settings
 
 ```sql
--- pgMonitor Exporter (ccp_settings_gauge)
 SELECT (SELECT setting::int 
         FROM pg_catalog.pg_settings 
         WHERE name = 'checkpoint_timeout') as checkpoint_timeout, 
@@ -38,23 +25,15 @@ SELECT (SELECT setting::int
         WHERE name = 'checkpoint_completion_target') as checkpoint_completion_target,
        (SELECT 8192*setting::bigint as bytes 
         FROM pg_catalog.pg_settings 
-        WHERE name = 'shared_buffers') as shared_buffers
+        WHERE name = 'shared_buffers') as shared_buffers;
 ```
 
 ## Checksum Failure
 
 ```sql
--- pgMonitor Exporter (ccp_data_checksum_failure)
 SELECT datname AS dbname, checksum_failures AS count,
        coalesce(extract(epoch from (now()-checksum_last_failure)), 0) AS time_since_last_failure_seconds
 FROM pg_catalog.pg_stat_database;
-```
-
-## Checksum Settings
-
-```sql
--- pgMonitor Exporter (ccp_pg_settings_checksum)
-SELECT monitor.pg_settings_checksum() AS status
 ```
 
 ## Configuration Settings (database level/cluster level)
@@ -226,7 +205,6 @@ ORDER BY 2 DESC;
 ## Transaction Wraparound
 
 ```sql
--- pgMonitor Exporter (ccp_transaction_wraparound)
 WITH max_age AS 
        (SELECT 2146483647 as max_old_xid, 
                setting AS autovacuum_freeze_max_age 

@@ -3,11 +3,10 @@
 ## CPU
 
 ```sql
--- pgMonitor Exporter (ccp_nodemx_cpu)
 SELECT monitor.kdapi_scalar_bigint('cpu_request') as request, monitor.kdapi_scalar_bigint('cpu_limit') as limit;
 ```
+
 ```sql
--- Exporter (ccp_nodemx_cpucfs)
 SELECT monitor.cgroup_scalar_bigint('cpu.cfs_period_us') as period_us, 
         case 
           when monitor.cgroup_scalar_bigint('cpu.cfs_quota_us') < 0 then 0 
@@ -16,12 +15,10 @@ SELECT monitor.cgroup_scalar_bigint('cpu.cfs_period_us') as period_us,
 ```
 
 ```sql
--- Exporter (ccp_nodemx_cpuacct)
 SELECT monitor.cgroup_scalar_bigint('cpuacct.usage') as usage, clock_timestamp() as usage_ts;
 ```
 
 ```sql
--- Exporter (ccp_nodemx_cpustat)
 WITH d(key, val) AS
         (SELECT key, val FROM monitor.cgroup_setof_kv('cpu.stat'))
 SELECT
@@ -33,7 +30,6 @@ SELECT
 ## Disk Activity
 
 ```sql
--- pgMonitor Exporter (ccp_nodemx_disk_activity)
 SELECT 
     mount_point,sectors_read,sectors_written
 FROM 
@@ -46,7 +42,6 @@ WHERE
 ## Disk Utilization
 
 ```sql
--- pgMonitor Exporter (ccp_nodemx_data_disk)
 SELECT 
    mount_point, round(((total_bytes-available_bytes)/total_bytes)*100) pct_used,
    fs_type, total_bytes, available_bytes, total_file_nodes, 
@@ -62,7 +57,6 @@ WHERE
 ## Memory
 
 ```sql
--- pgMonitor Exporter (ccp_nodemx_mem)
 WITH d(key, val) as
         (SELECT key, val 
          FROM monitor.cgroup_setof_kv('memory.stat'))
@@ -88,7 +82,6 @@ SELECT
 ## Network
 
 ```sql
--- pgMonitor Exporter (ccp_odemx_network)
 SELECT 
     interface,tx_bytes,tx_packets, rx_bytes,rx_packets 
 FROM
@@ -98,6 +91,5 @@ FROM
 ## Process Count
 
 ```sql
--- pgMonitor Exporter (ccp_nodemx_process)
 SELECT monitor.cgroup_process_count() as count;
 ```
